@@ -15,7 +15,6 @@ public final class DispatchTools: NSObject {
   /// - Parameters:
   ///   - timeout: The latest time to wait for a task.
   ///   - block: The block to be invoked on the global queue with userInteractive priority.
-  /// - Returns: A value of returned task or nil if timeout with pass.
   public static func performSyncOnBackground(timeout: TimeInterval, block: @escaping () -> ()) {
     let semaphore = DispatchSemaphore(value: 0)
     
