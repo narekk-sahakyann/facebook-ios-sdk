@@ -5,6 +5,7 @@
 ## Build generated
 build/
 DerivedData/
+Output/
 *-Focused.xcworkspace/
 
 ## Ignore generated project files.
