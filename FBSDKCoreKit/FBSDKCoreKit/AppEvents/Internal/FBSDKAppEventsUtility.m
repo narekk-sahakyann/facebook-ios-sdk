@@ -154,11 +154,19 @@ static FBSDKAppEventsUtility *_shared;
   ASIdentifierManager *manager = [self _asIdentifierManagerWithShouldUseCachedManager:shouldUseCachedManager
                                                              dynamicFrameworkResolver:dynamicFrameworkResolver];
   
-  __block NSString* adid = nil;
-  [FBSDKDispatchTools performSyncOnBackgroundWithTimeout:2 block:^{
-    adid = manager.advertisingIdentifier.UUIDString;
-  }];
-  return adid;
+  NSString* (^heavyOperation)() = ^NSString*{
+    return manager.advertisingIdentifier.UUIDString;
+  };
+  
+  if (FBSDKPicsartExperiments.performHeavyOperationsOnBackgroundSyncEnabled) {
+    __block NSString* adid = nil;
+    [FBSDKDispatchTools performSyncOnBackgroundWithTimeout:2 block:^{
+      adid = heavyOperation();
+    }];
+    return adid;
+  }
+  
+  return heavyOperation();
 }
 
 - (ASIdentifierManager *)_asIdentifierManagerWithShouldUseCachedManager:(BOOL)shouldUseCachedManager

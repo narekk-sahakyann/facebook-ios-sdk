@@ -131,12 +131,20 @@ static const long INACTIVE_SECONDS_QUANTA[] =
 
   NSString *content = [FBSDKBasicUtility JSONStringForObject:timeSpentData error:NULL invalidObjectHandler:NULL];
 
-  [FBSDKDispatchTools performSyncOnBackgroundWithTimeout:2 block:^{
+  void (^heavyOperation)() = ^{
     [content writeToFile:[FBSDKBasicUtility persistenceFilePath:FBSDKTimeSpentFilename]
               atomically:YES
                 encoding:NSASCIIStringEncoding
                    error:nil];
-  }];
+  };
+  
+  if (FBSDKPicsartExperiments.performHeavyOperationsOnBackgroundSyncEnabled) {
+    [FBSDKDispatchTools performSyncOnBackgroundWithTimeout:2 block:^{
+      heavyOperation();
+    }];
+  } else {
+    heavyOperation();
+  }
 
   NSString *msg = [NSString stringWithFormat:@"FBSDKTimeSpentData Persist: %@", content];
   [FBSDKLogger singleShotLogEntry:FBSDKLoggingBehaviorAppEvents
