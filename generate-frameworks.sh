@@ -23,7 +23,7 @@ build_sdk() {
     DESTINATION=$1
     
     xcodebuild build \
-    -workspace "${PWD}/${WORKSPACE_NAME}" \
+    -workspace ."/${WORKSPACE_NAME}" \
     -scheme "${SCHEME_NAME}" \
     -configuration "${CONFIGURATION}" \
     -destination generic/platform="${DESTINATION}" \
@@ -40,16 +40,10 @@ create_framework() {
     -output ./"${OUTPUT_FOLDER_NAME}/Frameworks/${SDK}".xcframework
 }
 
-clean_directory() {
-    DIRECTORY=$1
-    
-    rm -r "${DIRECTORY}"
-}
-
 ## Main
 
 # Clean
-clean_directory "${PWD}/${OUTPUT_FOLDER_NAME}/"
+rm -r ."/${OUTPUT_FOLDER_NAME}/"
 
 # Build
 for ARCH in "${SDK_BASE_ARCHS[@]}"; do
@@ -60,6 +54,10 @@ done
 for SDK in "${SDK_BASE_KITS[@]}"; do
     create_framework "${SDK}"
 done
+
+# Zip
+mkdir ./"${OUTPUT_FOLDER_NAME}/Zips/";
+find ./"${OUTPUT_FOLDER_NAME}/Frameworks/" -name "*.xcframework" -maxdepth 1 -execdir zip '../Zips/{}.zip' '{}' \;
 
 
 
