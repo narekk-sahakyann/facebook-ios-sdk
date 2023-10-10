@@ -4,6 +4,7 @@ OUTPUT_FOLDER_NAME="Output"
 WORKSPACE_NAME="FacebookSDK.xcworkspace"
 SCHEME_NAME="BuildAllKits-Static"
 CONFIGURATION="Release"
+PROJECT_CONFIGURATION="Configurations/FacebookSDK-Library.xcconfig"
 
 SDK_BASE_KITS=(
     "FBSDKCoreKit_Basics"
@@ -13,31 +14,47 @@ SDK_BASE_KITS=(
     "FBSDKShareKit"
 )
 
-SDK_BASE_ARCHS=(
+SDK_BASE_PLATFORMS=(
     "iOS"
     "iOS Simulator"
-    "macOS"
+    #"macOS"
 )
 
 build_sdk() {
-    DESTINATION=$1
+    # Prepare the -destination flags
+    DESTINATION_FLAGS=()
+    for i in "${SDK_BASE_PLATFORMS[@]}"; do
+        DESTINATION_FLAGS+=(-destination generic/platform="${i}")
+    done
     
+    # build the project with the selected flags
     xcodebuild build \
     -workspace ."/${WORKSPACE_NAME}" \
     -scheme "${SCHEME_NAME}" \
     -configuration "${CONFIGURATION}" \
-    -destination generic/platform="${DESTINATION}" \
-    -derivedDataPath "${OUTPUT_FOLDER_NAME}/Builds"
+    -xcconfig "${PROJECT_CONFIGURATION}" \
+    -derivedDataPath "${OUTPUT_FOLDER_NAME}/Builds" \
+    "${DESTINATION_FLAGS[@]}"
 }
 
 create_framework() {
     SDK=$1
     
+    # Find All the frameworks paths for the selected fb sdk
+    IFS=$'\n'
+    FRAMEWORK_PATHS=($(find ./"${OUTPUT_FOLDER_NAME}/Builds/Build/Products" -name "${SDK}.framework" -maxdepth 2))
+    unset IFS
+
+    # Prepare the -framework flags
+    FRAMEWORK_PATH_FLAGS=()
+    for i in "${FRAMEWORK_PATHS[@]}"; do
+        FRAMEWORK_PATH_FLAGS+=(-framework "${i}")
+    done
+
+    # generate the xcframework with the selected frameworks
     xcodebuild -create-xcframework \
-    -framework ./"${OUTPUT_FOLDER_NAME}/Builds/Build/Products/Release-iphoneos/${SDK}".framework \
-    -framework ./"${OUTPUT_FOLDER_NAME}/Builds/Build/Products/Release-iphonesimulator/${SDK}".framework \
-    -framework ./"${OUTPUT_FOLDER_NAME}/Builds/Build/Products/Release-maccatalyst/${SDK}".framework \
-    -output ./"${OUTPUT_FOLDER_NAME}/Frameworks/${SDK}".xcframework
+    -output ./"${OUTPUT_FOLDER_NAME}/Frameworks/${SDK}".xcframework \
+    "${FRAMEWORK_PATH_FLAGS[@]}"
 }
 
 ## Main
@@ -46,9 +63,7 @@ create_framework() {
 rm -r ."/${OUTPUT_FOLDER_NAME}/"
 
 # Build
-for ARCH in "${SDK_BASE_ARCHS[@]}"; do
-    build_sdk "${ARCH}"
-done
+build_sdk
 
 # Create XCFrameworks
 for SDK in "${SDK_BASE_KITS[@]}"; do
