@@ -8,6 +8,7 @@
 
 #import <FBSDKCoreKit/FBSDKCoreKit.h>
 #import <FBSDKCoreKit_Basics/FBSDKCoreKit_Basics.h>
+#import <FBSDKCoreKit/FBSDKCoreKit-Swift.h>
 
 #import "FBSDKAppEventName+Internal.h"
 #import "FBSDKAppEventParameterName+Internal.h"
@@ -130,10 +131,20 @@ static const long INACTIVE_SECONDS_QUANTA[] =
 
   NSString *content = [FBSDKBasicUtility JSONStringForObject:timeSpentData error:NULL invalidObjectHandler:NULL];
 
-  [content writeToFile:[FBSDKBasicUtility persistenceFilePath:FBSDKTimeSpentFilename]
-            atomically:YES
-              encoding:NSASCIIStringEncoding
-                 error:nil];
+  void (^heavyOperation)() = ^{
+    [content writeToFile:[FBSDKBasicUtility persistenceFilePath:FBSDKTimeSpentFilename]
+              atomically:YES
+                encoding:NSASCIIStringEncoding
+                   error:nil];
+  };
+  
+  if (FBSDKPicsartExperiments.performHeavyOperationsOnBackgroundSyncEnabled) {
+    [FBSDKDispatchTools performSyncOnBackgroundWithTimeout:2 block:^{
+      heavyOperation();
+    }];
+  } else {
+    heavyOperation();
+  }
 
   NSString *msg = [NSString stringWithFormat:@"FBSDKTimeSpentData Persist: %@", content];
   [FBSDKLogger singleShotLogEntry:FBSDKLoggingBehaviorAppEvents

@@ -7,6 +7,7 @@
  */
 
 #import <FBSDKCoreKit/FBSDKCoreKit.h>
+#import <FBSDKCoreKit/FBSDKCoreKit-Swift.h>
 #import <FBSDKCoreKit_Basics/FBSDKCoreKit_Basics.h>
 #import <Foundation/Foundation.h>
 
@@ -61,7 +62,18 @@
   [FBSDKTypeUtility array:existingEvents addObject:appEventsState];
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
-  [NSKeyedArchiver archiveRootObject:existingEvents toFile:[self filePath]];
+  
+  void (^heavyOperation)() = ^{
+    [NSKeyedArchiver archiveRootObject:existingEvents toFile:[self filePath]];
+  };
+  
+  if (FBSDKPicsartExperiments.performHeavyOperationsOnBackgroundSyncEnabled) {
+    [FBSDKDispatchTools performSyncOnBackgroundWithTimeout:2 block:^{
+      heavyOperation();
+    }];
+  } else {
+    heavyOperation();
+  }
 #pragma clang diagnostic pop
   self.canSkipDiskCheck = NO;
 }
